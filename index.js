@@ -24,34 +24,50 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    
+
 
     const collectionBistro = client.db('bostroDB').collection('menu')
     const collectionCarts = client.db('bostroDB').collection('carts')
+    const collectionUsers = client.db('bostroDB').collection('users')
 
-    app.get('/menu',async (req, res)=>{
-        const result = await collectionBistro.find().toArray()
-        res.send(result)
+    // auth releted api
+
+    app.post('/user', async (req, res) => {
+      const body = req.body
+      const result = await collectionUsers.insertOne(body)
+      res.send(result)
     })
 
-    app.post("/carts", async(req, res)=>{
+    // data releted api
+
+    app.get('/menu', async (req, res) => {
+      const result = await collectionBistro.find().toArray()
+      res.send(result)
+    })
+
+    app.post("/carts", async (req, res) => {
       const cardItem = req.body;
       const result = await collectionCarts.insertOne(cardItem);
       res.send(result);
     })
 
-    app.get("/carts",async (req ,res)=>{
+    app.get("/carts", async (req, res) => {
       const email = req.query.email
-      const quary = {email: email}
+      const quary = { email: email }
       const result = await collectionCarts.find(quary).toArray()
       res.send(result)
     })
 
-    app.delete('/carts/:id', async (req, res)=> {
+    app.delete('/carts/:id', async (req, res) => {
       const id = req.params.id
-      const quary = {_id: new ObjectId(id)}
-      const result = await collectionCarts.deleteOne(quary)
-      res.send(result) 
+      const user = { _id: new ObjectId(id) }
+      const quary = {email : user.email}
+      const existingUser = await collectionUsers.findOne(quary)
+      if (existingUser) {
+        return res.send({massages : 'user already exist', insertedID: null})
+      }
+      const result = await collectionCarts.deleteOne(user)
+      res.send(result)
     })
 
     await client.db("admin").command({ ping: 1 });
@@ -64,10 +80,10 @@ async function run() {
 run().catch(console.dir);
 
 
-app.get('/', (req, res)=>{
-    res.send("HELLO COSTOMERS WELCOME TO OUR RESTAU")
+app.get('/', (req, res) => {
+  res.send("HELLO COSTOMERS WELCOME TO OUR RESTAU")
 })
 
-app.listen(port ,()=>{
-    console.log(`HELLO COSTOMERS... ${port} `);
+app.listen(port, () => {
+  console.log(`HELLO COSTOMERS... ${port} `);
 })
